@@ -1,19 +1,20 @@
-require('dotenv').config()
+const logger = require('./utils/logger')
+const config = require('./utils/config')
 const express = require('express')
 const Note = require('./models/note')
 
 const app = express()
 
 const requestLogger = (request, response, next) => {
-    console.log('Method:', request.method)
-    console.log('Path:  ', request.path)
-    console.log('Status:  ', response.statusCode)
-    console.log('---')
+    logger.info('Method:', request.method)
+    logger.info('Path:  ', request.path)
+    logger.info('Status:  ', response.statusCode)
+    logger.info('---')
     next()
 }
 
 const errorHandler = (error, request, response, next) => {
-    console.error(error.message)
+    logger.error(error.message)
 
     if (error.name === 'CastError') {
         return response.status(400).send({ error: 'malformatted id' })
@@ -99,7 +100,8 @@ const unknownEndpoint = (request, response) => {
 app.use(unknownEndpoint)
 app.use(errorHandler)
 
-const PORT = process.env.PORT
+const PORT = config.PORT
+
 app.listen(PORT, () => {
-    console.log('Server running on port ', PORT)
+    logger.info('Server running on port ', PORT)
 })
