@@ -1,0 +1,87 @@
+{
+    1: {
+        'Test Names': [ 'succeeds with valid data' ],
+        'Why it's broken': 'Doesn't implement userId in the creation of new note'
+        'Replacement test': {
+            test('succeeds with valid data', async () => {
+                const usersAtStart = await helper.usersInDb()   // fix 1
+                const user = usersAtStart[0]                    // fix 2
+
+                const newNote = {
+                    content: 'async/await simplifies making async calls',
+                    important: true,
+                    userId: user.id                             // fix 3
+                }
+
+                await api
+                    .post('/api/notes')
+                    .send(newNote)
+                    .expect(201)
+                    .expect('Content-Type', /application\/json/)
+
+                const notesAtEnd = await helper.notesInDb()
+                assert.strictEqual(notesAtEnd.length, helper.initialNotes.length + 1)
+
+                const contents = notesAtEnd.map(n => n.content)
+                assert(contents.includes('async/await simplifies making async calls'))
+            })
+        }
+    },
+    2: {
+        'Test names': ['succeeds with valid data', 'fails with status code 400 if data invalid'],
+        'Why it's broken': 'Token authirization implemented on backend, not implemented on test',
+        'Replacement test': {
+            test('succeeds with valid data', async () => {
+                const usersAtStart = await helper.usersInDb()
+                const user = usersAtStart[0]
+
+                // Login to get token
+                const loginResponse = await api
+                    .post('/api/login')
+                    .send({ username: 'root', password: 'sekret' })
+
+                const token = loginResponse.body.token
+
+                const newNote = {
+                    content: 'async/await simplifies making async calls',
+                    important: true,
+                    userId: user.id
+                }
+
+                await api
+                    .post('/api/notes')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(newNote)
+                    .expect(201)
+                    .expect('Content-Type', /application\/json/)
+
+                const notesAtEnd = await helper.notesInDb()
+                assert.strictEqual(notesAtEnd.length, helper.initialNotes.length + 1)
+
+                const contents = notesAtEnd.map(n => n.content)
+                assert(contents.includes('async/await simplifies making async calls'))
+            })
+
+            test('fails with status code 400 if data invalid', async () => {
+                // Login to get token
+                const loginResponse = await api
+                    .post('/api/login')
+                    .send({ username: 'root', password: 'sekret' })
+
+                const token = loginResponse.body.token
+
+                const newNote = { important: true }
+
+                await api
+                    .post('/api/notes')
+                    .set('Authorization', `Bearer ${token}`)
+                    .send(newNote)
+                    .expect(400)
+
+                const notesAtEnd = await helper.notesInDb()
+
+                assert.strictEqual(notesAtEnd.length, helper.initialNotes.length)
+            })
+        }
+    }
+}
